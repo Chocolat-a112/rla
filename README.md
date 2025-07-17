@@ -1,1 +1,343 @@
-# rla
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login & Word Quiz</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+  body {
+  background-image: url('https://buly.kr/CLzeZli'); 
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-attachment: fixed;
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+
+  }
+
+
+    form, wordSection, quizSection {
+      background-color: rgba(255, 255, 255, 0.85);
+      border-radius: 15px;
+      padding: 20px;
+      max-width: 350px;
+      margin: 40px auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    table {
+      width: 100%;
+      font-size: 15px;
+    }
+
+    input[type="text"], input[type="password"], input[type="date"], select {
+      width: 100%;
+      height: 32px;
+      font-size: 15px;
+      border: 0;
+      border-radius: 15px;
+      outline: none;
+      padding-left: 10px;
+      background-color: rgb(233,233,233);
+      margin-bottom: 10px;
+    }
+
+    .btn {
+      width: 100%;
+      height: 32px;
+      font-size: 15px;
+      border: 0;
+      border-radius: 15px;
+      outline: none;
+      background-color: rgb(164, 199, 255);
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .btn:active {
+      background-color: rgb(61, 135, 255);
+    }
+
+    a {
+      font-size: 12px;
+      color: darkgray;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .join {
+      text-align: center;
+    }
+
+    #joinForm, #wordSection, #quizSection {
+      display: none;
+    }
+
+    #wordInputs {
+      margin-top: 10px;
+    }
+
+    #wordInputs input {
+      width: 40%;
+      margin-right: 5px;
+    }
+
+    #wordInputs button {
+      padding: 5px 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 로그인 폼 -->
+  <form id="loginForm" onsubmit="login(event)">
+    <h2>로그인</h2>
+    <input type="text" id="loginId" placeholder="ID" required>
+    <input type="password" id="loginPassword" placeholder="Password" required>
+    <label><input type="checkbox"> 로그인 정보 저장</label>
+    <input type="submit" value="Sign in" class="btn">
+    <div class="join"><a onclick="showJoinForm()">회원가입</a></div>
+  </form>
+
+  <!-- 회원가입 폼 -->
+  <form id="joinForm" onsubmit="register(event)">
+    <h2>회원가입</h2>
+    <input type="text" id="joinId" placeholder="아이디" required>
+    <input type="password" id="joinPassword" placeholder="비밀번호" required>
+    <input type="password" id="joinPasswordConfirm" placeholder="비밀번호 확인" required>
+    <input type="text" placeholder="이름" required>
+    <input type="date" required>
+    <div>
+      <input type="text" style="width: 120px;"> @
+      <select>
+        <option>naver.com</option>
+        <option>gmail.com</option>
+        <option>daum.net</option>
+        <option>nate.com</option>
+      </select>
+    </div>
+    <input type="submit" value="가입하기" class="btn">
+    <div class="join"><a onclick="showLoginForm()">로그인 화면으로</a></div>
+  </form>
+
+  <!-- 단어장 섹션 -->
+  <div id="wordSection">
+    <h2>영어 단어장</h2>
+    <div id="wordInputs">
+      <input type="text" placeholder="영어 단어" class="word">
+      <input type="text" placeholder="뜻" class="meaning">
+      <button type="button" onclick="addWord()">추가</button>
+    </div>
+    <table id="wordTable" border="1" style="margin-top: 20px; width: 100%;">
+      <thead>
+        <tr><th>단어</th><th>뜻</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn" onclick="submitWords()">확인</button>
+  </div>
+
+  <!-- 퀴즈 섹션 -->
+  <div id="quizSection"></div>
+
+  <script>
+    let wordList = [];
+    let currentIndex = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+
+    function showJoinForm() {
+      document.getElementById("loginForm").style.display = "none";
+      document.getElementById("joinForm").style.display = "block";
+      document.getElementById("wordSection").style.display = "none";
+      document.getElementById("quizSection").style.display = "none";
+    }
+
+    function showLoginForm() {
+      document.getElementById("joinForm").style.display = "none";
+      document.getElementById("loginForm").style.display = "block";
+      document.getElementById("wordSection").style.display = "none";
+      document.getElementById("quizSection").style.display = "none";
+    }
+
+    function register(event) {
+      event.preventDefault();
+      let userId = document.getElementById("joinId").value;
+      let password = document.getElementById("joinPassword").value;
+      let confirmPassword = document.getElementById("joinPasswordConfirm").value;
+
+      if (password !== confirmPassword) {
+        alert("비밀번호가 일치하지 않습니다.");
+        return;
+      }
+
+      let users = JSON.parse(localStorage.getItem("users")) || [];
+      if (users.some(user => user.id === userId)) {
+        alert("이미 사용 중인 아이디입니다.");
+        return;
+      }
+
+      users.push({ id: userId, password: password });
+      localStorage.setItem("users", JSON.stringify(users));
+
+      alert("회원가입 성공!");
+      showLoginForm();
+    }
+
+    function login(event) {
+      event.preventDefault();
+      let inputId = document.getElementById("loginId").value;
+      let inputPassword = document.getElementById("loginPassword").value;
+      let users = JSON.parse(localStorage.getItem("users")) || [];
+      let matchedUser = users.find(user => user.id === inputId && user.password === inputPassword);
+
+      if (matchedUser) {
+        alert("로그인 성공!");
+        document.getElementById("loginForm").style.display = "none";
+        document.getElementById("wordSection").style.display = "block";
+      } else {
+        alert("아이디 또는 비밀번호가 올바르지 않습니다.");
+      }
+    }
+
+    function addWord() {
+      const word = document.querySelector(".word").value.trim();
+      const meaning = document.querySelector(".meaning").value.trim();
+
+      if (!word || !meaning) {
+        alert("단어와 뜻을 모두 입력하세요.");
+        return;
+      }
+
+      const isDuplicateWord = wordList.some(item => item.word.toLowerCase() === word.toLowerCase());
+      const isDuplicateMeaning = wordList.some(item => item.meaning === meaning);
+
+      if (isDuplicateWord) {
+        alert("이미 등록된 영어 단어입니다.");
+        return;
+      }
+
+      if (isDuplicateMeaning) {
+        alert("이미 등록된 뜻입니다.");
+        return;
+      }
+
+      wordList.push({ word, meaning });
+
+      const newRow = document.createElement("tr");
+      newRow.innerHTML = `<td>${word}</td><td>${meaning}</td>`;
+      document.querySelector("#wordTable tbody").appendChild(newRow);
+
+      document.querySelector(".word").value = "";
+      document.querySelector(".meaning").value = "";
+    }
+document.getElementById("quizSection").style.display = "block";
+
+    function submitWords() {
+      if (wordList.length < 4) {
+        alert("최소 4개 이상의 단어를 입력해야 합니다.");
+      } else if (wordList.length >= 50) {
+        alert("단어는 50개 미만으로 입력해주세요.");
+      } else {
+        alert("제출 완료! 총 단어 수: " + wordList.length);
+        document.getElementById("wordSection").style.display = "none";
+        showRandomWord();
+      }
+    }
+
+    function showRandomWord() {
+      currentIndex = 0;
+      correctCount = 0;
+      wrongCount = 0;
+      showNextQuestion();
+    }
+
+    function showNextQuestion() {
+      if (currentIndex >= wordList.length) {
+        const quizSection = document.getElementById("quizSection");
+        quizSection.innerHTML = `
+          <h2>모든 문제를 다 풀었습니다!</h2>
+          <canvas id="resultChart" width="300" height="250"></canvas><br>
+          <button class="btn" onclick="restartQuiz()">다시 하기</button>
+          <button class="btn" onclick="newQuiz()">새로 만들기</button>
+        `;
+        renderChart();
+        return;
+      }
+
+      const currentWord = wordList[currentIndex];
+      const randomMeanings = getRandomMeanings(currentWord.meaning);
+      randomMeanings.push(currentWord.meaning);
+      randomMeanings.sort(() => Math.random() - 0.5);
+
+      const quizSection = document.getElementById("quizSection");
+      quizSection.innerHTML = `<h2>영어 단어: <strong>${currentWord.word}</strong></h2>`;
+      randomMeanings.forEach(meaning => {
+        quizSection.innerHTML += `<button class="btn" onclick="checkAnswer('${meaning}', '${currentWord.meaning}')">${meaning}</button><br>`;
+      });
+    }
+
+    function getRandomMeanings(correctMeaning) {
+      const meanings = wordList.map(item => item.meaning);
+      const randomMeanings = [];
+      while (randomMeanings.length < 3) {
+        const rand = meanings[Math.floor(Math.random() * meanings.length)];
+        if (rand !== correctMeaning && !randomMeanings.includes(rand)) {
+          randomMeanings.push(rand);
+        }
+      }
+      return randomMeanings;
+    }
+
+    function checkAnswer(selected, correct) {
+      if (selected === correct) {
+        alert("정답입니다!");
+        correctCount++;
+      } else {
+        alert("틀렸습니다.");
+        wrongCount++;
+      }
+      currentIndex++;
+      showNextQuestion();
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById('resultChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['정답', '오답'],
+          datasets: [{
+            label: '결과',
+            data: [correctCount, wrongCount],
+            backgroundColor: ['rgb(75, 192, 192)', 'rgb(255, 99, 132)']
+          }]
+        },
+        options: {
+          responsive: false,
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    function restartQuiz() {
+      currentIndex = 0;
+      correctCount = 0;
+      wrongCount = 0;
+      showNextQuestion();
+    }
+
+    function newQuiz() {
+      document.getElementById("quizSection").style.display = "none";
+      document.getElementById("wordSection").style.display = "block";
+      document.querySelector("#wordTable tbody").innerHTML = "";
+      wordList = [];
+    }
+  </script>
+</body>
+</html>
